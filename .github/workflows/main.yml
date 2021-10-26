@@ -1,0 +1,4 @@
+# Check code with mypy on push
+uses: jpetrucciani/mypy-check@master
+with:
+    mypy_flags: '--config-file .mypy.conf'
