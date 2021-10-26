@@ -6,3 +6,4 @@ class IncapsulaGen():
         self.script: str = script
     
     def create_data(self) -> None:
+        return None
