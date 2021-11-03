@@ -15,7 +15,6 @@ class IncapsulaGen():
     def create_data(self) -> str:
         """Formats all the data into a list[tuple] and encodes it to the needed format."""
         
-        
         # There probably is a better way to do this but I did it like this to keep it easy if you want to use your own collector/add fields
         data: list[tuple[str, str]] = [
             ('navigator', self.user_data['navigator']),
@@ -82,7 +81,7 @@ class IncapsulaGen():
         formattedData: str = urllib.parse.quote(
             ''.join(['='.join(tups) for tups in data])
         )
-        print(formattedData)
+        
         return formattedData
        
        
