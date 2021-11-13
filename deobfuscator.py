@@ -1,12 +1,12 @@
 """ This code is fucking ugly, ignore it pls"""
 
-from typing import Iterator, Match, Any, Pattern
+from typing import Iterator, Any
 
 import re
 import js2py
 import base64
 
-class Incapsula():
+class Incapsula_Deobfuscator():
     def __init__(self, debug: bool) -> None:        
         self.debug = debug    
         
@@ -123,6 +123,7 @@ class Incapsula():
         
         return script
     
+
     def rc4Decrypt(self, place: int, secret: str, wordArray: list[str]) -> str:
         """ Refactored js code into python code, copied original varnames """
         
@@ -153,7 +154,7 @@ class Incapsula():
             _0x1847ad[_0x47a6be] = _0x576661
             _0x4f0568 += chr(
                 ord(encoded_word_bytes[i]) ^ _0x1847ad[(_0x1847ad[_0x4f9ca8] + _0x1847ad[_0x47a6be]) % 256]
-            );
+            )
             
         return _0x4f0568
     

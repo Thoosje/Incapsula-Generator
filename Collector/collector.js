@@ -119,6 +119,7 @@ const generetaData = ( fields ) => {
 }
 
 let collectedData = generetaData([
+    ['navigator.userAgent', 'value'],
     ['navigator', 'exists'],
     ['navigator.vendor', 'value'],
     ['navigator.appName', 'value'],
