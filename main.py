@@ -29,8 +29,9 @@ class IncapsulaGen():
         if self._debug:
             print(f'[INCAPSULA SOLVER] {message}')
             
-    def solve_challenge(self, challenge_script_url: str) -> None:
+    def solve_challenge(self, challenge_script_url: str) -> str:
         """ Function that will actually solve the challenge, main function """
+        
         self.print_message(f'Solving challenge: {challenge_script_url}')
         
         deobfuscator_instance: Incapsula_Deobfuscator = Incapsula_Deobfuscator(debug=self._debug)
@@ -207,7 +208,7 @@ class IncapsulaGen():
             if 'incap_ses_' in cookie_name:
                 incap_ses_cookie_value: str = cookie_value
 
-        digest: str = self.generate_digest(incap_ses_cookie_value, 'encoded_user_data')
+        digest: str = self.generate_digest(incap_ses_cookie_value, encoded_user_data)
         s_value: str = self.generate_s_value(secret_cookie_key, digest)
         
         cookie: str = '{encoded_user_data},digest={digest},s={s}'.format(
@@ -216,7 +217,10 @@ class IncapsulaGen():
             s=s_value
         )
         
-        return base64.standard_b64encode(cookie.encode('latin1')).decode('latin1') # Encoding in latin1 is needed!
+        cookie_encoded: str = base64.standard_b64encode(cookie.encode('latin1')).decode('latin1')
+        
+        self.print_message(f'Generated cookie: {cookie_encoded}')
+        return cookie_encoded# Encoding in latin1 is needed!
     
     def generate_digest(self, incap_sess_cookie_value: str, generated_data: str) -> str:
         """ Generates the digist that is needed in the cookie """

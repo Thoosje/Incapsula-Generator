@@ -6,3 +6,8 @@ Once they collected all the data they encrypt it and make it into a cookie to va
 ## How do I collect my own user data?
 In the ``./Collector`` folder you can find a index.html file. Simply just open it in
 your browser and you will see all your collector user data.
+
+## How do I typecheck the code?
+You need to insall mypy first.
+
+```mypy --config-file mypy.conf --install-types main.py```
