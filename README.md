@@ -11,3 +11,5 @@ your browser and you will see all your collector user data.
 You need to insall mypy first.
 
 ```mypy --config-file mypy.conf --install-types main.py```
+
+! THIS PROJECT IS NOT FINISHED YET !

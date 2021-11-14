@@ -3,14 +3,17 @@ from typing import Union, Any
 import requests
 import urllib.parse
 import base64
+import re
+import random
 
 from deobfuscator import Incapsula_Deobfuscator
 
 class IncapsulaGen():
-    def __init__(self, session: requests.Session, user_data: dict[str, Any], debug: bool = False) -> None:
+    def __init__(self, site_url: str, session: requests.Session, user_data: dict[str, Any], debug: bool = False) -> None:
         self._session: requests.Session = session
         self._user_data: dict[str, str] = user_data
         self._debug: bool = debug
+        self._site_url = site_url
         
         self.headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -29,9 +32,8 @@ class IncapsulaGen():
         if self._debug:
             print(f'[INCAPSULA SOLVER] {message}')
             
-    def solve_challenge(self, challenge_script_url: str) -> str:
+    def solve_challenge(self, challenge_script_url: str) -> bool:
         """ Function that will actually solve the challenge, main function """
-        
         self.print_message(f'Solving challenge: {challenge_script_url}')
         
         deobfuscator_instance: Incapsula_Deobfuscator = Incapsula_Deobfuscator(debug=self._debug)
@@ -41,30 +43,70 @@ class IncapsulaGen():
         self.print_message('Deobfuscated script.')
             
         cookie_secret_key: str = self.find_cookie_key(deobfuscated_script)
-        
-        return self.create_cookie(
-            cookie_secret_key
+        cookie: str = self.create_cookie(
+            cookie_secret_key,
+            deobfuscated_script
         )
+        
+        self._session.cookies['___utmvc'] = cookie
+        self.post_cookie()
+        
+        r = self._session.get(self._site_url, headers=self.headers)
+        print(r.text)
+        
+        return False
     
     def get_challenge_script(self, challenge_script_url: str) -> str:            
         try:
             r = self._session.get(challenge_script_url, headers=self.headers)
         except Exception:
+            self.print_message('Failed to fetch challenge script.')
             raise Exception('Failed to fetch challenge script.')
         else:   
             return r.text
         
+    def post_cookie(self) -> bool:
+        try:
+            r = self._session.get(f'{self._site_url}_Incapsula_Resource?SWKMTFSR=1&e={random.random()}', headers=self.headers)
+        except Exception:
+            self.print_message('Failed to post cookie.')
+            raise Exception('Failed to post cookie.')
+        else:   
+            if r.text == '1':
+                self.print_message('Successfully submit cookie.')
+            else:
+                self.print_message(f'Failed to submit cookie: {r.text}')
+                
+            return r.text == 1
+        
+        
     def find_cookie_key(self, script: str) -> str:
         self.print_message('Finding cookie secret key.')
         
+        with open('ERROR.html', 'w', encoding='utf8') as file:
+            file.write(script)
+        
         secret_key_var_name: str = list(reversed(script.split("['substr'](0x0,0x5))+'digest='")[0].split(',')))[0]
-        secret_key: str = (script.split(f"{secret_key_var_name}='")[1].split("'")[0])
+        secret_key: str = script.split(f"{secret_key_var_name}='")[1].split("'")[0]
         
         self.print_message(f'Found secret cookie key: {secret_key}')
         return secret_key
     
-    def create_data(self) -> str:
+    def find_secret_cookie_value(self, script: str) -> tuple[str, str]:
+        """ Finds the secret value ('v9de0b886dfbefda4c9712a1a153939e5a40532b063daa56e008e6c398b5cdea9'.toString()) that has to be added to the cookie data. """
+        secret_string = re.findall("\\['push'\\]\(\\[`'(.*?)'\\.toString\\(\\)`", script, re.MULTILINE)
+        
+        if len(secret_string) == 0:
+            self.print_message('Failed to find secret cookie data field.')
+            raise Exception('Failed to find secret cookie data field.')
+        
+        self.print_message(f'Found secret cookie data field: {secret_string[0]}')
+        return (f"'{secret_string[0]}'.toString()", secret_string[0])
+        
+    def create_data(self, script: str) -> str:
         """Formats all the data into a list[tuple] and encodes it to the needed format."""
+        
+        secret_data_field: tuple[str, str] = self.find_secret_cookie_value(script)
         
         # There probably is a better way to do this but I did it like this to keep it easy if you want to use your own collector/add fields
         data: list[tuple[str, str]] = [
@@ -126,7 +168,8 @@ class IncapsulaGen():
             ('navigator.userAgentData.brands[0].brand', self._user_data['navigator.userAgentData.brands[0].brand']),
             ('navigator.userAgentData.brands[1].brand', self._user_data['navigator.userAgentData.brands[1].brand']),
             ('navigator.userAgentData.brands[2].brand', self._user_data['navigator.userAgentData.brands[2].brand']),
-            ("navigator.plugins('Microsoft Edge PDF Plugin')", self._user_data["navigator.plugins['Microsoft Edge PDF Plugin']"])
+            ("navigator.plugins('Microsoft Edge PDF Plugin')", self._user_data["navigator.plugins['Microsoft Edge PDF Plugin']"]),
+            secret_data_field
         ]
         
         formattedData: str = urllib.parse.quote(
@@ -135,38 +178,6 @@ class IncapsulaGen():
         
         self.print_message('Generated user data.')
         return formattedData
-       
-    def rc4Decrypt_old(self, secret: str, encodedWord: str) -> str:
-        """ Refactored js code into python code, copied original varnames """
-
-        # Initialize vars
-        _0x1847ad: list = list(range(0, 256))
-        _0x47a6be: int = 0
-        _0x576661: str = ''
-        _0x4f0568: str = ''
-        
-        # Base64 decode and convert bytes to utf8
-        encoded_word_bytes: str = base64.b64decode(encodedWord).decode('latin1')
-
-        for i in range(0, 256):
-            _0x47a6be = ( _0x47a6be + _0x1847ad[i] + ord(secret[i % len(secret)]) ) % 256 
-            _0x576661 = _0x1847ad[i]
-            _0x1847ad[i] = _0x1847ad[_0x47a6be]
-            _0x1847ad[_0x47a6be] = _0x576661
-        
-        _0x4f9ca8 = 0
-        _0x47a6be = 0
-        for i in range(len(encoded_word_bytes)):
-            _0x4f9ca8 = (_0x4f9ca8 + 1) % 256
-            _0x47a6be = (_0x47a6be + _0x1847ad[_0x4f9ca8]) % 256
-            _0x576661 = _0x1847ad[_0x4f9ca8]
-            _0x1847ad[_0x4f9ca8] = _0x1847ad[_0x47a6be]
-            _0x1847ad[_0x47a6be] = _0x576661
-            _0x4f0568 += chr(
-                ord(encoded_word_bytes[i]) ^ _0x1847ad[(_0x1847ad[_0x4f9ca8] + _0x1847ad[_0x47a6be]) % 256]
-            );
-            
-        return _0x4f0568
     
     def rc4Decrypt(self, key: str, string: str) -> str:
         """ Refactored js rc4 decrypt/encrypt function into python function """
@@ -196,12 +207,12 @@ class IncapsulaGen():
             
         return res
        
-    def create_cookie(self, secret_cookie_key: str) -> str:
+    def create_cookie(self, secret_cookie_key: str, script: str) -> str:
         """ Encodes the cookie """
         
         encoded_user_data = self.rc4Decrypt(
             secret_cookie_key[0:5],
-            self.create_data()
+            self.create_data(script)
         )
         
         for (cookie_name, cookie_value) in self._session.cookies.get_dict().items():
@@ -245,7 +256,28 @@ class IncapsulaGen():
         return s_value
        
 if __name__ == '__main__':
+    s = requests.Session()
+    headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36'
+    }
+    
+    r = s.get('https://www.metmuseum.org/', headers=headers)
+
+    print(r.text)
+    challenge_url = 'https://www.metmuseum.org/_Incapsula_Resource?' + r.text.split('src="/_Incapsula_Resource?')[1].split('"')[0]
+    print(challenge_url)
+    
     IncapsulaGen(
+        'https://www.metmuseum.org/',
         requests.Session(),
         {
             'navigator.userAgent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
@@ -311,5 +343,5 @@ if __name__ == '__main__':
         },
         True
     ).solve_challenge(
-        'https://www.smythstoys.com/_Incapsula_Resource?SWJIYLWA=719d34d31c8e3a6e6fffd425f7e032f3'
+        challenge_url
     )
