@@ -12,5 +12,5 @@ You need to insall mypy first.
 
 ```mypy --config-file mypy.conf --install-types main.py```
 
-## **UPDATE 03/03/23**
-Currently rewriting this and adding Reese84 support. Rewrite will be in JS probably or maybe in PY with AST deobfuscation support.
+## **UPDATE 18/06/23**
+I do not see __utmvc on a lot of sites anymore, anyway if someone needs __utmvc or reese send me a message. 
